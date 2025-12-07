@@ -1382,6 +1382,36 @@ def show_personalized_insights_page():
 def main():
     """Main Streamlit app with page navigation"""
     
+    # Add global CSS styling for better label visibility
+    st.markdown("""
+    <style>
+        /* Global text and label styling */
+        body, div, span, p, label {
+            color: #e0e0e0 !important;
+        }
+        
+        /* Ensure headers are white */
+        h1, h2, h3, h4, h5, h6 {
+            color: #ffffff !important;
+        }
+        
+        /* Markdown text styling */
+        .stMarkdown {
+            color: #e0e0e0 !important;
+        }
+        
+        /* Strong text is white */
+        strong, b {
+            color: #ffffff !important;
+        }
+        
+        /* Form labels */
+        label {
+            color: #e0e0e0 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Check if user is logged in
     if not is_logged_in():
         show_login_page()

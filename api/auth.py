@@ -83,6 +83,36 @@ def show_login_page():
     """Display login/signup page"""
     # Note: set_page_config is called in main ui.py, not here
     
+    # Add CSS styling for better label visibility in dark mode
+    st.markdown("""
+    <style>
+        /* Override Streamlit's default dark text */
+        body, div, span, p, label {
+            color: #e0e0e0 !important;
+        }
+        
+        /* Ensure markdown headers are visible */
+        h1, h2, h3, h4, h5, h6 {
+            color: #ffffff !important;
+        }
+        
+        /* Target all text elements */
+        .stMarkdown {
+            color: #e0e0e0 !important;
+        }
+        
+        /* Ensure strong text is white */
+        strong, b {
+            color: #ffffff !important;
+        }
+        
+        /* Target all form labels */
+        label {
+            color: #e0e0e0 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Center the login form
     col1, col2, col3 = st.columns([1, 2, 1])
     
@@ -103,6 +133,7 @@ def show_login_page():
             
             if all_users:
                 # Dropdown to select existing user
+                st.markdown('<p style="color: #ffffff; font-weight: bold;">Select Your Profile</p>', unsafe_allow_html=True)
                 user_names = {u['user_id']: u['name'] for u in all_users}
                 selected_user_id = st.selectbox(
                     "Select Your Profile",
@@ -116,7 +147,8 @@ def show_login_page():
                 
                 if selected_user and selected_user.get('password_hash'):
                     # User has password set, require password for login
-                    password = st.text_input("Password", type="password", placeholder="Enter your password")
+                    st.markdown('<p style="color: #ffffff; font-weight: bold;">Password</p>', unsafe_allow_html=True)
+                    password = st.text_input("Password", type="password", placeholder="Enter your password", label_visibility="collapsed")
                     
                     if st.button("Login", use_container_width=True, type="primary"):
                         if login(selected_user_id, password=password):
@@ -139,14 +171,20 @@ def show_login_page():
             st.subheader("Create New Profile")
             
             # Basic info
-            user_id = st.text_input("Profile ID", placeholder="e.g., user_alice")
-            name = st.text_input("Your Name", placeholder="e.g., Alice")
-            email = st.text_input("Email", placeholder="e.g., alice@example.com")
+            st.markdown('<p style="color: #ffffff; font-weight: bold;">Profile ID</p>', unsafe_allow_html=True)
+            user_id = st.text_input("Profile ID", placeholder="e.g., user_alice", label_visibility="collapsed")
+            
+            st.markdown('<p style="color: #ffffff; font-weight: bold;">Your Name</p>', unsafe_allow_html=True)
+            name = st.text_input("Your Name", placeholder="e.g., Alice", label_visibility="collapsed")
+            
+            st.markdown('<p style="color: #ffffff; font-weight: bold;">Email</p>', unsafe_allow_html=True)
+            email = st.text_input("Email", placeholder="e.g., alice@example.com", label_visibility="collapsed")
             
             # Education and subject
             col_left, col_right = st.columns(2)
             
             with col_left:
+                st.markdown('<p style="color: #ffffff; font-weight: bold;">Education Level</p>', unsafe_allow_html=True)
                 education_level = st.selectbox(
                     "Education Level",
                     options=["", "High School", "University", "Professional"],
@@ -155,31 +193,37 @@ def show_login_page():
                 education_level = education_level if education_level else None
             
             with col_right:
-                subject_area = st.text_input("Subject Area", placeholder="e.g., Mathematics, Computer Science")
+                st.markdown('<p style="color: #ffffff; font-weight: bold;">Subject Area</p>', unsafe_allow_html=True)
+                subject_area = st.text_input("Subject Area", placeholder="e.g., Mathematics, Computer Science", label_visibility="collapsed")
             
             # Learning preferences
             col_left2, col_right2 = st.columns(2)
             
             with col_left2:
-                learning_goal = st.text_input("Learning Goal", placeholder="e.g., Master Python")
+                st.markdown('<p style="color: #ffffff; font-weight: bold;">Learning Goal</p>', unsafe_allow_html=True)
+                learning_goal = st.text_input("Learning Goal", placeholder="e.g., Master Python", label_visibility="collapsed")
             
             with col_right2:
+                st.markdown('<p style="color: #ffffff; font-weight: bold;">Preferred Session (min)</p>', unsafe_allow_html=True)
                 preferred_duration = st.number_input(
                     "Preferred Session (min)",
                     min_value=15,
                     max_value=180,
-                    value=60
+                    value=60,
+                    label_visibility="collapsed"
                 )
             
             # Password (optional)
-            st.markdown("**Optional: Set a password for security**")
+            st.markdown('<p style="color: #ffffff; font-weight: bold;">Optional: Set a password for security</p>', unsafe_allow_html=True)
             col_pwd1, col_pwd2 = st.columns(2)
             
             with col_pwd1:
-                password = st.text_input("Password", type="password", placeholder="Leave blank for no password")
+                st.markdown('<p style="color: #e0e0e0; font-style: italic;">Password</p>', unsafe_allow_html=True)
+                password = st.text_input("Password", type="password", placeholder="Leave blank for no password", label_visibility="collapsed")
             
             with col_pwd2:
-                password_confirm = st.text_input("Confirm Password", type="password", placeholder="Confirm password")
+                st.markdown('<p style="color: #e0e0e0; font-style: italic;">Confirm Password</p>', unsafe_allow_html=True)
+                password_confirm = st.text_input("Confirm Password", type="password", placeholder="Confirm password", label_visibility="collapsed")
             
             # Form validation and submission
             if st.button("Create Profile", use_container_width=True, type="primary"):
