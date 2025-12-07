@@ -1,3 +1,4 @@
+# Study Planner MVP Dependencies - Updated Dec 7 2025 23:24
 streamlit==1.35.0
 fastapi==0.109.0
 pydantic==2.7.0
