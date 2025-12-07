@@ -551,6 +551,45 @@ streamlit run api/ui.py --server.port 80
 
 MIT License - Feel free to use and modify
 
+## Deployment
+
+### Streamlit Cloud (Recommended - Free)
+
+Deploy your app to Streamlit Cloud for free public access:
+
+1. **Prerequisites:**
+   - GitHub account with code pushed to `Tod0604/planner_mvp`
+   - Streamlit Cloud account (sign up at [streamlit.io/cloud](https://streamlit.io/cloud))
+
+2. **Deploy:**
+   - Go to [Streamlit Cloud](https://streamlit.io/cloud)
+   - Click "New app"
+   - Select repository: `Tod0604/planner_mvp`
+   - Main file path: `api/ui.py`
+   - Click "Deploy"
+
+3. **Access:**
+   - Your app will be live at: `https://[your-username]-planner-mvp.streamlit.app`
+   - Share this URL with anyone
+
+4. **Notes:**
+   - Database resets on each deployment (SQLite file not persisted)
+   - For persistent storage, upgrade to paid tier or use external database
+   - All features work out-of-the-box without configuration
+
+### Local Network
+
+For testing with others on your network:
+
+```bash
+streamlit run api/ui.py
+# Visit: http://[your-ip]:8501 (e.g., http://10.0.0.234:8501)
+```
+
+### Docker Deployment
+
+Create a `Dockerfile` to containerize the app for deployment on any server.
+
 ## Contributing
 
 To improve the Study Planner:
