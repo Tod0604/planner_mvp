@@ -2,7 +2,7 @@
 
 An AI-powered study planning application that intelligently prioritizes tasks, allocates time, and manages deadlines using machine learning.
 
-## 🎯 Overview
+## Overview
 
 The Study Planner MVP uses three interconnected ML models to create optimized study plans:
 
@@ -10,7 +10,7 @@ The Study Planner MVP uses three interconnected ML models to create optimized st
 2. **Time Allocation Model** - Recommends optimal duration for each task
 3. **Difficulty Adjustment Model** - Suggests difficulty adjustments based on current energy levels
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 planner_mvp/
@@ -33,7 +33,7 @@ planner_mvp/
 └── README.md                      # This file
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install Dependencies
 
@@ -83,7 +83,7 @@ streamlit run api/ui.py
 
 UI available at: `http://localhost:8501`
 
-## 📊 Component Details
+## Component Details
 
 ### Data Generation (`data/synthetic_generator.py`)
 
@@ -255,7 +255,7 @@ plan = generate_plan(user_input)
    - Spinner during plan generation
    - Color-coded status indicators
 
-## 📈 Usage Examples
+## Usage Examples
 
 ### Example 1: Student with Multiple Tasks
 
@@ -364,7 +364,7 @@ plan = response.json()
 print(plan["summary"])
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Unit Testing Models
 
@@ -400,7 +400,7 @@ curl -X POST http://localhost:8000/plan \
   }'
 ```
 
-## 📝 Configuration
+## Configuration
 
 ### Model Hyperparameters
 
@@ -435,7 +435,7 @@ theme.base = "light"
 showErrorDetails = true
 ```
 
-## 📦 Dependencies
+## Dependencies
 
 | Package | Version | Purpose |
 |---------|---------|---------|
@@ -449,7 +449,7 @@ showErrorDetails = true
 | streamlit | 1.29.0 | UI framework |
 | requests | 2.31.0 | HTTP client |
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Issue: Models not found
 ```
@@ -475,7 +475,7 @@ Address already in use: 0.0.0.0:8501
 ```
 **Solution:** Specify different port: `streamlit run api/ui.py --server.port 8502`
 
-## 🎓 Architecture Diagram
+## Architecture Diagram
 
 ```
 User Input (Streamlit UI)
@@ -507,7 +507,7 @@ User Input (Streamlit UI)
    Streamlit UI Display
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Local Development
 ```bash
@@ -530,7 +530,7 @@ gunicorn api.app:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
 streamlit run api/ui.py --server.port 80
 ```
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 **Training Time:**
 - Data generation: ~2 seconds
@@ -547,11 +547,11 @@ streamlit run api/ui.py --server.port 80
 - Single uvicorn worker: ~1000 requests/minute
 - Scales linearly with workers
 
-## 📄 License
+## License
 
 MIT License - Feel free to use and modify
 
-## 🤝 Contributing
+## Contributing
 
 To improve the Study Planner:
 
@@ -560,7 +560,7 @@ To improve the Study Planner:
 3. Update Streamlit UI in `api/ui.py`
 4. Document changes in this README
 
-## 📞 Support
+## Support
 
 For issues or questions:
 1. Check the Troubleshooting section
@@ -570,4 +570,4 @@ For issues or questions:
 
 ---
 
-**Built with ❤️ for learners and educators**
+**Built for learners and educators**
