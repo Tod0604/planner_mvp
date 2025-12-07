@@ -11,12 +11,14 @@ import sys
 import os
 from datetime import datetime, timedelta
 import calendar
+import pandas as pd
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.database import get_database
 from utils.planner import get_intelligent_planner
+from utils.calendar_store import get_calendar_store
 
 # Page config
 st.set_page_config(
@@ -78,7 +80,41 @@ def get_theme_css(theme: str) -> str:
             }
             
             .stApp {
-                background-color: #0f0f0f;
+                background-color: #0f0f0f !important;
+            }
+            
+            /* Fix header/toolbar background */
+            [data-testid="stToolbar"] {
+                background-color: #0f0f0f !important;
+            }
+            
+            /* Fix top banner area */
+            .stAppHeader {
+                background-color: #0f0f0f !important;
+            }
+            
+            /* Ensure no white background anywhere */
+            .streamlit-container, section[data-testid="stAppViewContainer"] {
+                background-color: #0f0f0f !important;
+            }
+            
+            /* Additional header fixes */
+            header {
+                background-color: #0f0f0f !important;
+            }
+            
+            [data-testid="stHeader"] {
+                background-color: #0f0f0f !important;
+            }
+            
+            /* Top bar/banner */
+            .css-1v3fvcr {
+                background-color: #0f0f0f !important;
+            }
+            
+            /* App container */
+            [role="main"] {
+                background-color: #0f0f0f !important;
             }
             
             /* Typography - Headers with Playfair Display */
@@ -324,6 +360,40 @@ def get_theme_css(theme: str) -> str:
             
             .stApp {
                 background-color: #ffffff;
+            }
+            
+            /* Fix header/toolbar background for light mode */
+            [data-testid="stToolbar"] {
+                background-color: #ffffff !important;
+            }
+            
+            /* Fix top banner area */
+            .stAppHeader {
+                background-color: #ffffff !important;
+            }
+            
+            /* Ensure no black background anywhere */
+            .streamlit-container, section[data-testid="stAppViewContainer"] {
+                background-color: #ffffff !important;
+            }
+            
+            /* Additional header fixes */
+            header {
+                background-color: #ffffff !important;
+            }
+            
+            [data-testid="stHeader"] {
+                background-color: #ffffff !important;
+            }
+            
+            /* Top bar/banner */
+            .css-1v3fvcr {
+                background-color: #ffffff !important;
+            }
+            
+            /* App container */
+            [role="main"] {
+                background-color: #ffffff !important;
             }
             
             /* Typography - Headers with Playfair Display */
@@ -864,21 +934,18 @@ def show_daily_planner():
                         st.info(f"Found {len(urgent_deadlines)} upcoming deadline(s) to consider")
                         
                         for deadline in urgent_deadlines:
-                            # Color coding based on urgency
+                            # Urgency level based on score
                             if deadline.urgency_score >= 0.75:
-                                color = "🔴"
                                 urgency_level = "CRITICAL"
                             elif deadline.urgency_score >= 0.5:
-                                color = "🟠"
                                 urgency_level = "HIGH"
                             else:
-                                color = "🟡"
                                 urgency_level = "MEDIUM"
                             
                             col_d1, col_d2 = st.columns([2, 1])
                             
                             with col_d1:
-                                st.markdown(f"{color} **{deadline.title}**")
+                                st.markdown(f"**[{urgency_level}] {deadline.title}**")
                                 st.caption(f"Type: {deadline.type} | Estimated: {deadline.estimated_time} min")
                                 st.caption(f"Due: {deadline.due_date} ({deadline.days_until} days)")
                             
@@ -891,7 +958,7 @@ def show_daily_planner():
                     # Schedule conflicts
                     conflicts = planner.detect_schedule_conflicts(days_ahead=7)
                     if conflicts:
-                        st.warning(f"⚠️ Schedule conflicts detected on {len(conflicts)} day(s):")
+                        st.warning(f"Schedule conflicts detected on {len(conflicts)} day(s):")
                         for conflict in conflicts:
                             st.caption(f"{conflict['date']}: {len(conflict['deadlines'])} deadline(s), "
                                      f"{conflict['total_time']} minutes total")
@@ -1007,15 +1074,15 @@ def show_deadline_manager():
             planner = get_intelligent_planner()
             urgency_score = planner.calculate_urgency_score(deadline["due_date"], deadline["estimated_time"])
             if urgency_score >= 0.75:
-                color = "🔴"
+                urgency_label = "[CRITICAL]"
             elif urgency_score >= 0.5:
-                color = "🟠"
+                urgency_label = "[HIGH]"
             else:
-                color = "🟡"
+                urgency_label = "[MEDIUM]"
             with st.container(border=True):
                 col1, col2, col3, col4 = st.columns([3, 1, 1, 2])
                 with col1:
-                    st.markdown(f"{color} **{deadline['title']}**")
+                    st.markdown(f"**{urgency_label} {deadline['title']}**")
                     st.caption(f"{deadline['type']} - Due: {due_date.strftime('%b %d, %Y')}")
                     st.caption(f"Estimated: {deadline['estimated_time']} min | {deadline['description']}")
                 with col2:
@@ -1109,7 +1176,7 @@ def main():
         st.subheader("Navigation")
         page = st.radio(
             "Select Page",
-            ["Daily Planner", "Deadline Manager"],
+            ["Daily Planner", "Deadline Manager", "Calendar & History", "Feedback"],
             label_visibility="collapsed"
         )
         
@@ -1138,6 +1205,8 @@ def main():
         **Quick Guide:**
         - **Daily Planner**: Configure schedule and generate daily plans
         - **Deadline Manager**: Track assignments and deadlines
+        - **Calendar & History**: View saved plans over time
+        - **Feedback**: Log daily results and improve future plans
         """)
         st.divider()
         st.subheader("API Quick Access")
@@ -1152,8 +1221,12 @@ def main():
     # Route to appropriate page
     if page == "Daily Planner":
         show_daily_planner()
-    else:
+    elif page == "Deadline Manager":
         show_deadline_manager()
+    elif page == "Calendar & History":
+        show_calendar_overview()
+    else:
+        show_feedback_page()
     
     # Footer
     st.markdown("---")
@@ -1163,6 +1236,339 @@ def main():
         <p><small>Start -> Plan -> Execute -> Learn</small></p>
     </div>
     """, unsafe_allow_html=True)
+
+
+def show_calendar_overview():
+    """Calendar view with weekly/monthly plan summary"""
+    
+    st.subheader("Calendar & Plan History")
+    st.write("View your saved plans and study patterns over time")
+    
+    calendar_store = get_calendar_store()
+    
+    # Date range selector
+    st.write("### View Plans")
+    col_date1, col_date2 = st.columns(2)
+    
+    with col_date1:
+        start_date = st.date_input(
+            "Start Date",
+            value=datetime.now().date() - timedelta(days=7),
+            key="calendar_start_date"
+        )
+    
+    with col_date2:
+        end_date = st.date_input(
+            "End Date",
+            value=datetime.now().date(),
+            key="calendar_end_date"
+        )
+    
+    if start_date > end_date:
+        st.error("Start date must be before end date")
+        return
+    
+    # Get plans in range
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+    plans = calendar_store.list_plans(start_str, end_str)
+    
+    if not plans:
+        st.info(f"No plans found between {start_str} and {end_str}. Generate a plan to get started!")
+    else:
+        # Display stats
+        st.write("### Summary Statistics")
+        col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+        
+        total_planned = sum(p["total_planned_minutes"] for p in plans)
+        avg_planned = total_planned / len(plans) if plans else 0
+        total_tasks = sum(p["num_tasks"] for p in plans)
+        
+        with col_stat1:
+            st.metric("Total Days Planned", len(plans))
+        
+        with col_stat2:
+            st.metric("Total Minutes Planned", int(total_planned))
+        
+        with col_stat3:
+            st.metric("Avg Minutes/Day", int(avg_planned))
+        
+        with col_stat4:
+            st.metric("Total Tasks", int(total_tasks))
+        
+        st.divider()
+        
+        # Chart: Minutes per day
+        st.write("### Study Load Over Time")
+        chart_data = pd.DataFrame([
+            {
+                "Date": p["date"],
+                "Planned Minutes": p["total_planned_minutes"],
+                "Available Minutes": p["available_minutes"],
+                "Tasks": p["num_tasks"]
+            }
+            for p in plans
+        ])
+        
+        # Line chart
+        st.line_chart(
+            chart_data.set_index("Date")[["Planned Minutes", "Available Minutes"]],
+            height=300
+        )
+        
+        st.divider()
+        
+        # Detailed table
+        st.write("### Detailed Plans")
+        
+        table_data = []
+        for plan in plans:
+            feedback = calendar_store.get_feedback(plan["date"])
+            table_data.append({
+                "Date": plan["date"],
+                "Tasks": plan["num_tasks"],
+                "Planned (min)": plan["total_planned_minutes"],
+                "Available (min)": plan["available_minutes"],
+                "Completion %": f"{feedback['completion_ratio']*100:.0f}%" if feedback else "—",
+                "Tiredness": f"{feedback['tiredness_end_of_day']}/5" if feedback else "—"
+            })
+        
+        df_display = pd.DataFrame(table_data)
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        
+        # Individual day view
+        st.write("### View Specific Day")
+        selected_date = st.selectbox(
+            "Select a date:",
+            [p["date"] for p in plans],
+            format_func=lambda x: f"{x} ({datetime.strptime(x, '%Y-%m-%d').strftime('%A')})",
+            key="calendar_date_select"
+        )
+        
+        if selected_date:
+            plan = calendar_store.get_plan(selected_date)
+            feedback = calendar_store.get_feedback(selected_date)
+            
+            st.write(f"### Plan for {selected_date}")
+            
+            col_day1, col_day2, col_day3 = st.columns(3)
+            
+            plan_summary = [p for p in plans if p["date"] == selected_date][0]
+            
+            with col_day1:
+                st.metric("Tasks", plan_summary["num_tasks"])
+            
+            with col_day2:
+                st.metric("Total Minutes", plan_summary["total_planned_minutes"])
+            
+            with col_day3:
+                st.metric("Available", plan_summary["available_minutes"])
+            
+            if plan:
+                st.write("**Ranked Tasks:**")
+                for i, (task, minutes) in enumerate(zip(plan.get("ranked_tasks", []), plan.get("recommended_minutes", [])), 1):
+                    st.write(f"{i}. **{task}** - {minutes} minutes")
+                
+                st.write(f"\n**Summary:** {plan.get('summary', 'N/A')}")
+            
+            if feedback:
+                st.divider()
+                st.write("**Feedback:**")
+                col_fb1, col_fb2, col_fb3 = st.columns(3)
+                
+                with col_fb1:
+                    st.metric("Completion", f"{feedback['completion_ratio']*100:.0f}%")
+                
+                with col_fb2:
+                    st.metric("Tiredness", f"{feedback['tiredness_end_of_day']}/5")
+                
+                with col_fb3:
+                    if feedback['notes']:
+                        st.info(f"📝 {feedback['notes']}")
+            else:
+                st.info("No feedback submitted yet for this day")
+
+
+def show_feedback_page():
+    """Feedback collection and analysis page"""
+    
+    st.subheader("Daily Feedback & Learning")
+    st.write("Record how your study day went to help improve future plans")
+    
+    calendar_store = get_calendar_store()
+    
+    # Tabs for feedback submission and history
+    tab_submit, tab_history = st.tabs(["Submit Feedback", "Feedback History"])
+    
+    with tab_submit:
+        st.write("### Submit Today's Feedback")
+        st.write("After your study session, tell us how it went!")
+        
+        # Get today's date and plan
+        today = datetime.now().strftime("%Y-%m-%d")
+        plan = calendar_store.get_plan(today)
+        
+        if not plan:
+            st.warning("No plan found for today. Generate a plan first on the Daily Planner page.")
+        else:
+            col_fb1, col_fb2 = st.columns(2)
+            
+            with col_fb1:
+                st.write("**Today's Plan:**")
+                for i, (task, minutes) in enumerate(zip(plan.get("ranked_tasks", []), plan.get("recommended_minutes", [])), 1):
+                    st.write(f"{i}. {task} ({minutes}m)")
+            
+            with col_fb2:
+                st.write("**How did it go?**")
+            
+            st.divider()
+            
+            # Feedback form
+            col_comp, col_tired = st.columns(2)
+            
+            with col_comp:
+                completion_ratio = st.slider(
+                    "How much of the plan did you complete?",
+                    min_value=0,
+                    max_value=100,
+                    value=75,
+                    step=5,
+                    key="feedback_completion"
+                )
+                completion_pct = completion_ratio / 100.0
+            
+            with col_tired:
+                tiredness = st.slider(
+                    "How tired are you now?",
+                    min_value=1,
+                    max_value=5,
+                    value=3,
+                    step=1,
+                    format="%d/5",
+                    key="feedback_tiredness"
+                )
+            
+            notes = st.text_area(
+                "Any notes or observations?",
+                placeholder="e.g., 'Got through Math but Physics took longer than expected'",
+                key="feedback_notes"
+            )
+            
+            # Submit button
+            col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+            
+            with col_btn1:
+                if st.button("Submit Feedback", type="primary", use_container_width=True, key="submit_feedback_btn"):
+                    try:
+                        success = calendar_store.save_feedback(
+                            date=today,
+                            completion_ratio=completion_pct,
+                            tiredness_end_of_day=tiredness,
+                            notes=notes if notes else None
+                        )
+                        
+                        if success:
+                            st.success("✓ Feedback saved! This helps us improve your plans.")
+                            st.balloons()
+                            import time
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.error("Failed to save feedback")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+    
+    with tab_history:
+        st.write("### Feedback History")
+        st.write("Track your completion rates and energy levels over time")
+        
+        col_hist1, col_hist2 = st.columns(2)
+        
+        with col_hist1:
+            hist_start = st.date_input(
+                "Start Date",
+                value=datetime.now().date() - timedelta(days=30),
+                key="feedback_hist_start"
+            )
+        
+        with col_hist2:
+            hist_end = st.date_input(
+                "End Date",
+                value=datetime.now().date(),
+                key="feedback_hist_end"
+            )
+        
+        if hist_start > hist_end:
+            st.error("Start date must be before end date")
+        else:
+            start_str = hist_start.strftime("%Y-%m-%d")
+            end_str = hist_end.strftime("%Y-%m-%d")
+            feedback_entries = calendar_store.get_feedback_range(start_str, end_str)
+            
+            if not feedback_entries:
+                st.info(f"No feedback found between {start_str} and {end_str}")
+            else:
+                # Stats
+                st.write("### Summary")
+                col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+                
+                completion_ratios = [f["completion_ratio"] for f in feedback_entries]
+                tiredness_levels = [f["tiredness_end_of_day"] for f in feedback_entries]
+                
+                with col_stat1:
+                    st.metric("Days Logged", len(feedback_entries))
+                
+                with col_stat2:
+                    avg_completion = sum(completion_ratios) / len(completion_ratios) * 100
+                    st.metric("Avg Completion", f"{avg_completion:.0f}%")
+                
+                with col_stat3:
+                    avg_tiredness = sum(tiredness_levels) / len(tiredness_levels)
+                    st.metric("Avg Tiredness", f"{avg_tiredness:.1f}/5")
+                
+                with col_stat4:
+                    high_completion_days = sum(1 for c in completion_ratios if c >= 0.8)
+                    st.metric("High Completion Days", high_completion_days)
+                
+                st.divider()
+                
+                # Chart
+                st.write("### Trends")
+                chart_fb_data = pd.DataFrame([
+                    {
+                        "Date": f["date"],
+                        "Completion %": f["completion_ratio"] * 100,
+                        "Tiredness": f["tiredness_end_of_day"]
+                    }
+                    for f in feedback_entries
+                ])
+                
+                st.line_chart(
+                    chart_fb_data.set_index("Date"),
+                    height=300
+                )
+                
+                st.divider()
+                
+                # Detailed table
+                st.write("### Detailed Feedback Log")
+                
+                table_fb_data = []
+                for fb in feedback_entries:
+                    table_fb_data.append({
+                        "Date": fb["date"],
+                        "Completion": f"{fb['completion_ratio']*100:.0f}%",
+                        "Tiredness": f"{fb['tiredness_end_of_day']}/5",
+                        "Notes": fb["notes"] or "—"
+                    })
+                
+                df_fb = pd.DataFrame(table_fb_data)
+                st.dataframe(df_fb, use_container_width=True, hide_index=True)
+
+
+
 
 
 if __name__ == "__main__":

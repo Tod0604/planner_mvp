@@ -237,7 +237,7 @@ if __name__ == "__main__":
     from features.build_features import create_training_features
     from data.synthetic_generator import generate_synthetic_data, save_synthetic_data
     
-    print("🤖 Training ML models...")
+    print("[TRAINING] Starting ML model training...")
     
     # Generate synthetic data
     df = generate_synthetic_data(num_records=300)
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     y_difficulty = y_difficulty.iloc[:min_len]
     
     # Train models
-    print("\n📈 Training models...")
+    print("[TRAINING] Training models...")
     
     ranker = TaskRankingModel().train(X, y_difficulty + 2)  # Convert to 0-2 range
     time_model = TimeAllocationModel().train(X, y_duration)
@@ -268,4 +268,4 @@ if __name__ == "__main__":
     time_model.save()
     diff_model.save()
     
-    print("\n✓ All models trained and saved")
+    print("[TRAINING] All models trained and saved")
