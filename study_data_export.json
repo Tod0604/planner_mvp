@@ -1,0 +1,76 @@
+{
+  "plans": [
+    {
+      "date": "2025-12-05",
+      "plan": {
+        "ranked_tasks": [
+          "Task1",
+          "Task2"
+        ],
+        "recommended_minutes": [
+          60,
+          60
+        ],
+        "difficulty_adjustment": 0,
+        "summary": "Test plan",
+        "metrics": {}
+      },
+      "available_minutes": 120
+    },
+    {
+      "date": "2025-12-06",
+      "plan": {
+        "ranked_tasks": [
+          "Task1",
+          "Task2"
+        ],
+        "recommended_minutes": [
+          60,
+          60
+        ],
+        "difficulty_adjustment": 0,
+        "summary": "Test plan",
+        "metrics": {}
+      },
+      "available_minutes": 120
+    },
+    {
+      "date": "2025-12-07",
+      "plan": {
+        "ranked_tasks": [
+          "Task1",
+          "Task2"
+        ],
+        "recommended_minutes": [
+          60,
+          60
+        ],
+        "difficulty_adjustment": 0,
+        "summary": "Test plan",
+        "metrics": {}
+      },
+      "available_minutes": 120
+    }
+  ],
+  "feedback": [
+    {
+      "date": "2025-12-07",
+      "completion_ratio": 0.7,
+      "tiredness_end_of_day": 3,
+      "notes": "Day 0 feedback"
+    },
+    {
+      "date": "2025-12-06",
+      "completion_ratio": 0.7999999999999999,
+      "tiredness_end_of_day": 2,
+      "notes": "Day 1 feedback"
+    },
+    {
+      "date": "2025-12-05",
+      "completion_ratio": 0.8999999999999999,
+      "tiredness_end_of_day": 1,
+      "notes": "Day 2 feedback"
+    }
+  ],
+  "export_date": "2025-12-07T17:15:17.154423"
+}

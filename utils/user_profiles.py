@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from threading import Lock
 from pathlib import Path
+import hashlib
+import secrets
 
 
 class UserProfileManager:
@@ -32,8 +34,13 @@ class UserProfileManager:
                 CREATE TABLE IF NOT EXISTS users (
                     user_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
+                    email TEXT UNIQUE,
                     learning_goal TEXT,
+                    education_level TEXT,
+                    subject_area TEXT,
                     preferred_session_duration INTEGER,
+                    password_hash TEXT,
+                    password_salt TEXT,
                     created_at TEXT,
                     updated_at TEXT
                 )
@@ -86,21 +93,87 @@ class UserProfileManager:
             conn.commit()
             conn.close()
     
+    @staticmethod
+    def hash_password(password: str) -> Tuple[str, str]:
+        """Hash a password with a random salt using PBKDF2
+        
+        Returns:
+            Tuple of (password_hash, salt) both as hex strings
+        """
+        salt = secrets.token_bytes(32)
+        # Use PBKDF2 with 100,000 iterations (NIST recommendation)
+        password_hash = hashlib.pbkdf2_hmac(
+            'sha256',
+            password.encode('utf-8'),
+            salt,
+            100000
+        )
+        return password_hash.hex(), salt.hex()
+    
+    @staticmethod
+    def verify_password(password: str, password_hash: str, salt: str) -> bool:
+        """Verify a password against its hash and salt
+        
+        Args:
+            password: The password to verify
+            password_hash: The stored password hash (hex string)
+            salt: The stored salt (hex string)
+            
+        Returns:
+            True if password matches, False otherwise
+        """
+        try:
+            salt_bytes = bytes.fromhex(salt)
+            computed_hash = hashlib.pbkdf2_hmac(
+                'sha256',
+                password.encode('utf-8'),
+                salt_bytes,
+                100000
+            )
+            return computed_hash.hex() == password_hash
+        except (ValueError, AttributeError):
+            return False
+    
     def create_user(self, user_id: str, name: str, learning_goal: str = "", 
-                   preferred_session_duration: int = 60) -> Dict:
-        """Create a new user profile"""
+                   preferred_session_duration: int = 60, email: str = None,
+                   education_level: str = None, subject_area: str = None,
+                   password: str = None) -> Dict:
+        """Create a new user profile
+        
+        Args:
+            user_id: Unique user identifier
+            name: User's display name
+            learning_goal: Optional learning goal
+            preferred_session_duration: Preferred study session length in minutes
+            email: Optional email address (must be unique)
+            education_level: Optional education level (High School, University, Professional)
+            subject_area: Optional subject area of interest
+            password: Optional password for account security
+            
+        Returns:
+            Dictionary with status and user_id or error message
+        """
         with self._lock:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
             now = datetime.now().isoformat()
+            password_hash = None
+            password_salt = None
+            
+            # Hash password if provided
+            if password:
+                password_hash, password_salt = self.hash_password(password)
             
             try:
                 cursor.execute('''
-                    INSERT INTO users (user_id, name, learning_goal, 
-                                     preferred_session_duration, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (user_id, name, learning_goal, preferred_session_duration, now, now))
+                    INSERT INTO users (user_id, name, email, learning_goal, 
+                                     education_level, subject_area,
+                                     preferred_session_duration, password_hash, 
+                                     password_salt, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, name, email, learning_goal, education_level, subject_area,
+                      preferred_session_duration, password_hash, password_salt, now, now))
                 
                 # Initialize preferences
                 cursor.execute('''
@@ -110,10 +183,15 @@ class UserProfileManager:
                 
                 conn.commit()
                 return {"status": "success", "user_id": user_id, "name": name}
-            except sqlite3.IntegrityError:
-                return {"status": "error", "message": f"User {user_id} already exists"}
+            except sqlite3.IntegrityError as e:
+                error_msg = str(e)
+                if "email" in error_msg.lower():
+                    return {"status": "error", "message": f"Email {email} already exists"}
+                else:
+                    return {"status": "error", "message": f"User {user_id} already exists"}
             finally:
                 conn.close()
+
     
     def get_user(self, user_id: str) -> Optional[Dict]:
         """Get user profile details"""

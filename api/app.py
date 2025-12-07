@@ -166,16 +166,24 @@ class UserCreateRequest(BaseModel):
     """Request to create new user profile"""
     user_id: str
     name: str
+    email: Optional[str] = None
     learning_goal: Optional[str] = ""
+    education_level: Optional[str] = None
+    subject_area: Optional[str] = None
     preferred_session_duration: Optional[int] = 60
+    password: Optional[str] = None
     
     class Config:
         schema_extra = {
             "example": {
                 "user_id": "user_123",
                 "name": "Alice",
+                "email": "alice@example.com",
                 "learning_goal": "Improve Math skills",
-                "preferred_session_duration": 45
+                "education_level": "University",
+                "subject_area": "Mathematics",
+                "preferred_session_duration": 45,
+                "password": "SecurePass123"
             }
         }
 
@@ -184,7 +192,10 @@ class UserProfileResponse(BaseModel):
     """User profile data"""
     user_id: str
     name: str
+    email: Optional[str]
     learning_goal: Optional[str]
+    education_level: Optional[str]
+    subject_area: Optional[str]
     preferred_session_duration: Optional[int]
     created_at: str
     updated_at: str
@@ -775,13 +786,17 @@ async def get_deadline_progress(deadline_id: int) -> Dict[str, Any]:
 # User Profile Endpoints
 @app.post("/users", response_model=Dict[str, Any])
 async def create_user(request: UserCreateRequest) -> Dict[str, Any]:
-    """Create a new user profile"""
+    """Create a new user profile with comprehensive information"""
     user_manager = get_user_profile_manager()
     result = user_manager.create_user(
-        request.user_id,
-        request.name,
-        request.learning_goal or "",
-        request.preferred_session_duration or 60
+        user_id=request.user_id,
+        name=request.name,
+        email=request.email,
+        learning_goal=request.learning_goal or "",
+        education_level=request.education_level,
+        subject_area=request.subject_area,
+        preferred_session_duration=request.preferred_session_duration or 60,
+        password=request.password
     )
     return result
 
