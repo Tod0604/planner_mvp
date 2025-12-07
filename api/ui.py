@@ -20,6 +20,7 @@ from utils.database import get_database
 from utils.planner import get_intelligent_planner
 from utils.calendar_store import get_calendar_store
 from utils.user_profiles import get_user_profile_manager
+from auth import init_auth_state, is_logged_in, get_current_user, logout, show_login_page, show_user_header
 
 # Page config
 st.set_page_config(
@@ -28,6 +29,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Initialize authentication
+init_auth_state()
 
 # Initialize theme in session state
 if "theme" not in st.session_state:
@@ -1173,141 +1177,118 @@ def show_deadline_manager():
 def show_user_profiles_page():
     """User Profiles & Personalization page"""
     st.subheader("User Profiles & Personalization")
-    st.write("Create profiles to track individual learning patterns and preferences")
+    st.write("Track individual learning patterns and manage time sessions")
     
     user_manager = get_user_profile_manager()
     
-    # Get all users
-    all_users = user_manager.get_all_users()
+    # Get current logged-in user
+    current_user = get_current_user()
+    if not current_user:
+        st.error("Please log in first")
+        return
     
-    tab1, tab2, tab3 = st.tabs(["Select Profile", "Create New Profile", "Time Tracking"])
+    user_id = current_user['user_id']
+    user_data = user_manager.get_user(user_id)
     
-    # TAB 1: Select existing profile
+    # Display current user profile
+    st.markdown(f"**Profile:** {user_data['name']}")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Learning Goal", user_data['learning_goal'] or "Not set")
+    with col2:
+        st.metric("Preferred Session", f"{user_data['preferred_session_duration']} min")
+    with col3:
+        active = user_manager.get_active_clock_in(user_id)
+        status = "Tracking" if active else "Idle"
+        st.metric("Status", status)
+    
+    st.divider()
+    
+    # Two tabs: Time Tracking and Profile Settings
+    tab1, tab2 = st.tabs(["Time Tracking", "Profile Settings"])
+    
+    # TAB 1: Time Tracking
     with tab1:
-        st.write("Select your profile to access personalized insights")
-        
-        if all_users:
-            user_names = {u['user_id']: u['name'] for u in all_users}
-            selected_user_id = st.selectbox(
-                "Your Profile",
-                options=list(user_names.keys()),
-                format_func=lambda x: user_names[x],
-                label_visibility="collapsed"
-            )
-            
-            if selected_user_id:
-                st.session_state.current_user = selected_user_id
-                user_data = user_manager.get_user(selected_user_id)
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.metric("Profile Name", user_data['name'])
-                    st.metric("Learning Goal", user_data['learning_goal'] or "Not set")
-                
-                with col2:
-                    st.metric("Preferred Session", f"{user_data['preferred_session_duration']} min")
-                    
-                    # Get active session
-                    active = user_manager.get_active_clock_in(selected_user_id)
-                    if active:
-                        st.warning(f"Active: {active['task_name']}")
-        else:
-            st.info("No profiles yet. Create one to get started!")
-    
-    # TAB 2: Create new profile
-    with tab2:
-        st.write("Set up your learning profile")
+        st.write("Clock in and out of study sessions")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            user_id = st.text_input("Profile ID", value="user_" + str(int(datetime.now().timestamp())), help="Unique identifier")
-            name = st.text_input("Your Name", placeholder="e.g., Alice")
+            st.subheader("Clock In")
+            task_name = st.text_input("Task Name", placeholder="e.g., Mathematics - Calculus", key="clock_in_task")
+            
+            if st.button("Start Task", use_container_width=True, type="primary"):
+                if task_name:
+                    result = user_manager.clock_in(user_id, task_name)
+                    if result['status'] == 'success':
+                        st.session_state.active_tracking_id = result['tracking_id']
+                        st.success(f"Clocked in: {task_name}")
+                        st.rerun()
+                else:
+                    st.error("Please enter a task name")
         
         with col2:
-            learning_goal = st.text_input("Learning Goal", placeholder="e.g., Improve Math skills")
-            preferred_duration = st.number_input("Preferred Session Duration (minutes)", min_value=15, max_value=180, value=60)
-        
-        if st.button("Create Profile", use_container_width=True):
-            if name and user_id:
-                result = user_manager.create_user(user_id, name, learning_goal, preferred_duration)
-                if result['status'] == 'success':
-                    st.success(f"Profile created: {name}")
-                    st.session_state.current_user = user_id
-                    st.rerun()
-                else:
-                    st.error(result.get('message', 'Error creating profile'))
-            else:
-                st.error("Please fill in all required fields")
-    
-    # TAB 3: Time Tracking
-    with tab3:
-        if st.session_state.current_user:
-            user_id = st.session_state.current_user
-            user_data = user_manager.get_user(user_id)
+            st.subheader("Clock Out")
+            active = user_manager.get_active_clock_in(user_id)
             
-            st.write(f"Time tracking for: **{user_data['name']}**")
-            
-            # Clock in/out section
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("Clock In")
-                task_name = st.text_input("Task Name", placeholder="e.g., Mathematics - Calculus", key="clock_in_task")
+            if active:
+                st.info(f"Currently tracking: **{active['task_name']}**")
+                difficulty = st.select_slider("Difficulty Level", options=[1, 2, 3, 4, 5], value=3)
+                notes = st.text_area("Notes", placeholder="How did it go?", height=100)
                 
-                if st.button("Start Task", use_container_width=True, type="primary"):
-                    if task_name:
-                        result = user_manager.clock_in(user_id, task_name)
-                        if result['status'] == 'success':
-                            st.session_state.active_tracking_id = result['tracking_id']
-                            st.success(f"Clocked in: {task_name}")
-                            st.rerun()
+                if st.button("End Task", use_container_width=True, type="primary"):
+                    result = user_manager.clock_out(user_id, active['tracking_id'], difficulty, notes)
+                    if result['status'] == 'success':
+                        st.session_state.active_tracking_id = None
+                        st.success(f"Clocked out - Duration: {result['duration_minutes']} minutes")
+                        st.rerun()
                     else:
-                        st.error("Please enter a task name")
-            
-            with col2:
-                st.subheader("Clock Out")
-                active = user_manager.get_active_clock_in(user_id)
-                
-                if active:
-                    st.info(f"Currently tracking: **{active['task_name']}**")
-                    difficulty = st.select_slider("Difficulty Level", options=[1, 2, 3, 4, 5], value=3)
-                    notes = st.text_area("Notes", placeholder="How did it go?", height=100)
-                    
-                    if st.button("End Task", use_container_width=True, type="primary"):
-                        result = user_manager.clock_out(user_id, active['tracking_id'], difficulty, notes)
-                        if result['status'] == 'success':
-                            st.session_state.active_tracking_id = None
-                            st.success(f"Clocked out - Duration: {result['duration_minutes']} minutes")
-                            st.rerun()
-                        else:
-                            st.error(result.get('message', 'Error clocking out'))
-                else:
-                    st.caption("No active session. Start a task first!")
-            
-            # Time tracking history
-            st.divider()
-            st.subheader("Recent Sessions")
-            
-            history = user_manager.get_time_tracking_history(user_id, days=7)
-            
-            if history:
-                df_history = pd.DataFrame([
-                    {
-                        'Date': h['date'],
-                        'Task': h['task_name'],
-                        'Duration (min)': h['duration_minutes'],
-                        'Difficulty': h['difficulty_rating'],
-                        'Notes': h['notes'] or '-'
-                    }
-                    for h in history
-                ])
-                st.dataframe(df_history, use_container_width=True)
+                        st.error(result.get('message', 'Error clocking out'))
             else:
-                st.caption("No tracked sessions yet")
+                st.caption("No active session. Start a task first!")
+        
+        st.divider()
+        st.subheader("Recent Sessions")
+        
+        history = user_manager.get_time_tracking_history(user_id, days=7)
+        
+        if history:
+            df_history = pd.DataFrame([
+                {
+                    'Date': h['date'],
+                    'Task': h['task_name'],
+                    'Duration (min)': h['duration_minutes'],
+                    'Difficulty': h['difficulty_rating'],
+                    'Notes': h['notes'] or '-'
+                }
+                for h in history
+            ])
+            st.dataframe(df_history, use_container_width=True)
         else:
-            st.info("Select or create a profile first to track time")
+            st.caption("No tracked sessions yet")
+    
+    # TAB 2: Profile Settings
+    with tab2:
+        st.write("Manage your profile preferences")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            new_name = st.text_input("Name", value=user_data['name'])
+            new_goal = st.text_input("Learning Goal", value=user_data['learning_goal'] or "")
+        
+        with col2:
+            new_duration = st.number_input(
+                "Preferred Session Duration (min)",
+                min_value=15,
+                max_value=180,
+                value=user_data['preferred_session_duration'] or 60
+            )
+        
+        if st.button("Update Profile", use_container_width=True):
+            st.success("Profile updated!")
+            st.caption("(Profile update feature coming soon)")
 
 
 def show_personalized_insights_page():
@@ -1315,12 +1296,14 @@ def show_personalized_insights_page():
     st.subheader("Your Personalized Insights")
     st.write("Analytics and recommendations based on your study patterns")
     
-    if not st.session_state.current_user:
-        st.info("Select a profile first to view insights")
+    # Get current logged-in user
+    current_user = get_current_user()
+    if not current_user:
+        st.error("Please log in first")
         return
     
     user_manager = get_user_profile_manager()
-    user_id = st.session_state.current_user
+    user_id = current_user['user_id']
     user_data = user_manager.get_user(user_id)
     
     st.write(f"Profile: **{user_data['name']}**")
@@ -1399,8 +1382,17 @@ def show_personalized_insights_page():
 def main():
     """Main Streamlit app with page navigation"""
     
+    # Check if user is logged in
+    if not is_logged_in():
+        show_login_page()
+        return
+    
+    # User is logged in - show main app
     st.title("Study Planner")
     st.write("Personalized AI-powered study planning for students")
+    
+    # Show user header in top right
+    show_user_header()
     
     # Sidebar for configuration
     with st.sidebar:
@@ -1416,20 +1408,7 @@ def main():
         
         st.divider()
         
-        # Current user display
-        st.subheader("Current Profile")
-        if st.session_state.current_user:
-            user_manager = get_user_profile_manager()
-            user_data = user_manager.get_user(st.session_state.current_user)
-            st.success(f"Active: {user_data['name']}")
-            
-            active = user_manager.get_active_clock_in(st.session_state.current_user)
-            if active:
-                st.warning(f"Tracking: {active['task_name']}")
-        else:
-            st.caption("No profile selected")
-        
-        st.divider()
+        # Theme selector
         st.subheader("Appearance")
         theme_cols = st.columns(2)
         
