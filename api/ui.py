@@ -1421,11 +1421,11 @@ def main():
         if st.session_state.current_user:
             user_manager = get_user_profile_manager()
             user_data = user_manager.get_user(st.session_state.current_user)
-            st.success(f"User: {user_data['name']}", icon="✓")
+            st.success(f"Active: {user_data['name']}")
             
             active = user_manager.get_active_clock_in(st.session_state.current_user)
             if active:
-                st.warning(f"Tracking: {active['task_name']}", icon="⏱️")
+                st.warning(f"Tracking: {active['task_name']}")
         else:
             st.caption("No profile selected")
         
@@ -1447,7 +1447,7 @@ def main():
         
         st.divider()
         
-        st.info("Connected to API backend", icon="ℹ️")
+        st.info("Connected to API backend")
         st.markdown("""
         **Quick Guide:**
         - **Daily Planner**: Configure schedule and generate daily plans
