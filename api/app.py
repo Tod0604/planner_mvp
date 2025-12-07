@@ -19,6 +19,7 @@ from main import generate_plan
 from utils.planner import get_intelligent_planner
 from utils.database import get_database_manager
 from utils.calendar_store import get_calendar_store
+from utils.user_profiles import get_user_profile_manager
 from utils.models import DeadlineDict
 
 # Initialize FastAPI app
@@ -158,6 +159,80 @@ class CalendarSummaryResponse(BaseModel):
     end_date: str
     count: int
     plans: List[Dict[str, Any]]
+
+
+# User Profile Models
+class UserCreateRequest(BaseModel):
+    """Request to create new user profile"""
+    user_id: str
+    name: str
+    learning_goal: Optional[str] = ""
+    preferred_session_duration: Optional[int] = 60
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "user_id": "user_123",
+                "name": "Alice",
+                "learning_goal": "Improve Math skills",
+                "preferred_session_duration": 45
+            }
+        }
+
+
+class UserProfileResponse(BaseModel):
+    """User profile data"""
+    user_id: str
+    name: str
+    learning_goal: Optional[str]
+    preferred_session_duration: Optional[int]
+    created_at: str
+    updated_at: str
+
+
+class TimeTrackingRequest(BaseModel):
+    """Request to clock in for a task"""
+    user_id: str
+    task_name: str
+    date: Optional[str] = None
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "user_id": "user_123",
+                "task_name": "Mathematics - Calculus"
+            }
+        }
+
+
+class TimeTrackingClockOutRequest(BaseModel):
+    """Request to clock out from a task"""
+    user_id: str
+    tracking_id: str
+    difficulty_rating: Optional[int] = None  # 1-5
+    notes: Optional[str] = None
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "user_id": "user_123",
+                "tracking_id": "tracking_xyz",
+                "difficulty_rating": 3,
+                "notes": "Completed 5 problems"
+            }
+        }
+
+
+class UserAnalyticsResponse(BaseModel):
+    """User personalized analytics"""
+    status: str
+    avg_session_duration: Optional[float] = None
+    most_productive_hour: Optional[str] = None
+    productivity_score: Optional[float] = None
+    total_study_hours: Optional[float] = None
+    favorite_subjects: Optional[List[str]] = None
+    session_count: Optional[int] = None
+    message: Optional[str] = None
 
 
 # Health check endpoint
@@ -695,6 +770,126 @@ async def get_deadline_progress(deadline_id: int) -> Dict[str, Any]:
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# User Profile Endpoints
+@app.post("/users", response_model=Dict[str, Any])
+async def create_user(request: UserCreateRequest) -> Dict[str, Any]:
+    """Create a new user profile"""
+    user_manager = get_user_profile_manager()
+    result = user_manager.create_user(
+        request.user_id,
+        request.name,
+        request.learning_goal or "",
+        request.preferred_session_duration or 60
+    )
+    return result
+
+
+@app.get("/users", response_model=List[Dict[str, Any]])
+async def list_users() -> List[Dict[str, Any]]:
+    """List all user profiles"""
+    user_manager = get_user_profile_manager()
+    return user_manager.get_all_users()
+
+
+@app.get("/users/{user_id}", response_model=Dict[str, Any])
+async def get_user(user_id: str) -> Dict[str, Any]:
+    """Get user profile details"""
+    user_manager = get_user_profile_manager()
+    user = user_manager.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    return user
+
+
+@app.post("/users/{user_id}/clock-in", response_model=Dict[str, Any])
+async def clock_in_task(user_id: str, request: TimeTrackingRequest) -> Dict[str, Any]:
+    """Clock in for a task"""
+    user_manager = get_user_profile_manager()
+    
+    # Verify user exists
+    if not user_manager.get_user(user_id):
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    
+    result = user_manager.clock_in(user_id, request.task_name, request.date)
+    return result
+
+
+@app.post("/users/{user_id}/clock-out", response_model=Dict[str, Any])
+async def clock_out_task(user_id: str, request: TimeTrackingClockOutRequest) -> Dict[str, Any]:
+    """Clock out from a task"""
+    user_manager = get_user_profile_manager()
+    
+    # Verify user exists
+    if not user_manager.get_user(user_id):
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    
+    result = user_manager.clock_out(
+        user_id,
+        request.tracking_id,
+        request.difficulty_rating,
+        request.notes or ""
+    )
+    
+    if result.get('status') == 'error':
+        raise HTTPException(status_code=404, detail=result.get('message'))
+    
+    return result
+
+
+@app.get("/users/{user_id}/active-session", response_model=Optional[Dict[str, Any]])
+async def get_active_session(user_id: str) -> Optional[Dict[str, Any]]:
+    """Get currently active clock-in session"""
+    user_manager = get_user_profile_manager()
+    
+    # Verify user exists
+    if not user_manager.get_user(user_id):
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    
+    active = user_manager.get_active_clock_in(user_id)
+    if active:
+        return active
+    return None
+
+
+@app.get("/users/{user_id}/analytics", response_model=Dict[str, Any])
+async def get_user_analytics(user_id: str) -> Dict[str, Any]:
+    """Get user personalized analytics"""
+    user_manager = get_user_profile_manager()
+    
+    # Verify user exists
+    if not user_manager.get_user(user_id):
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    
+    analytics = user_manager.calculate_analytics(user_id)
+    return analytics
+
+
+@app.get("/users/{user_id}/insights", response_model=Dict[str, Any])
+async def get_user_insights(user_id: str) -> Dict[str, Any]:
+    """Get personalized insights and recommendations"""
+    user_manager = get_user_profile_manager()
+    
+    # Verify user exists
+    if not user_manager.get_user(user_id):
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    
+    insights = user_manager.get_personalized_insights(user_id)
+    return insights
+
+
+@app.get("/users/{user_id}/time-tracking", response_model=List[Dict[str, Any]])
+async def get_time_tracking_history(user_id: str, days: int = 30) -> List[Dict[str, Any]]:
+    """Get user's time tracking history"""
+    user_manager = get_user_profile_manager()
+    
+    # Verify user exists
+    if not user_manager.get_user(user_id):
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+    
+    history = user_manager.get_time_tracking_history(user_id, days)
+    return history
 
 
 # Info endpoint

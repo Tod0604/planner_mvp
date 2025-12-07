@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.database import get_database
 from utils.planner import get_intelligent_planner
 from utils.calendar_store import get_calendar_store
+from utils.user_profiles import get_user_profile_manager
 
 # Page config
 st.set_page_config(
@@ -31,6 +32,13 @@ st.set_page_config(
 # Initialize theme in session state
 if "theme" not in st.session_state:
     st.session_state.theme = "light"
+
+# Initialize user profile in session state
+if "current_user" not in st.session_state:
+    st.session_state.current_user = None
+
+if "active_tracking_id" not in st.session_state:
+    st.session_state.active_tracking_id = None
 
 # Initialize deadlines in session state
 if "deadlines" not in st.session_state:
@@ -1162,6 +1170,232 @@ def show_deadline_manager():
                     st.error(f"Error adding deadline: {str(e)}")
 
 
+def show_user_profiles_page():
+    """User Profiles & Personalization page"""
+    st.subheader("User Profiles & Personalization")
+    st.write("Create profiles to track individual learning patterns and preferences")
+    
+    user_manager = get_user_profile_manager()
+    
+    # Get all users
+    all_users = user_manager.get_all_users()
+    
+    tab1, tab2, tab3 = st.tabs(["Select Profile", "Create New Profile", "Time Tracking"])
+    
+    # TAB 1: Select existing profile
+    with tab1:
+        st.write("Select your profile to access personalized insights")
+        
+        if all_users:
+            user_names = {u['user_id']: u['name'] for u in all_users}
+            selected_user_id = st.selectbox(
+                "Your Profile",
+                options=list(user_names.keys()),
+                format_func=lambda x: user_names[x],
+                label_visibility="collapsed"
+            )
+            
+            if selected_user_id:
+                st.session_state.current_user = selected_user_id
+                user_data = user_manager.get_user(selected_user_id)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.metric("Profile Name", user_data['name'])
+                    st.metric("Learning Goal", user_data['learning_goal'] or "Not set")
+                
+                with col2:
+                    st.metric("Preferred Session", f"{user_data['preferred_session_duration']} min")
+                    
+                    # Get active session
+                    active = user_manager.get_active_clock_in(selected_user_id)
+                    if active:
+                        st.warning(f"Active: {active['task_name']}")
+        else:
+            st.info("No profiles yet. Create one to get started!")
+    
+    # TAB 2: Create new profile
+    with tab2:
+        st.write("Set up your learning profile")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            user_id = st.text_input("Profile ID", value="user_" + str(int(datetime.now().timestamp())), help="Unique identifier")
+            name = st.text_input("Your Name", placeholder="e.g., Alice")
+        
+        with col2:
+            learning_goal = st.text_input("Learning Goal", placeholder="e.g., Improve Math skills")
+            preferred_duration = st.number_input("Preferred Session Duration (minutes)", min_value=15, max_value=180, value=60)
+        
+        if st.button("Create Profile", use_container_width=True):
+            if name and user_id:
+                result = user_manager.create_user(user_id, name, learning_goal, preferred_duration)
+                if result['status'] == 'success':
+                    st.success(f"Profile created: {name}")
+                    st.session_state.current_user = user_id
+                    st.rerun()
+                else:
+                    st.error(result.get('message', 'Error creating profile'))
+            else:
+                st.error("Please fill in all required fields")
+    
+    # TAB 3: Time Tracking
+    with tab3:
+        if st.session_state.current_user:
+            user_id = st.session_state.current_user
+            user_data = user_manager.get_user(user_id)
+            
+            st.write(f"Time tracking for: **{user_data['name']}**")
+            
+            # Clock in/out section
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("Clock In")
+                task_name = st.text_input("Task Name", placeholder="e.g., Mathematics - Calculus", key="clock_in_task")
+                
+                if st.button("Start Task", use_container_width=True, type="primary"):
+                    if task_name:
+                        result = user_manager.clock_in(user_id, task_name)
+                        if result['status'] == 'success':
+                            st.session_state.active_tracking_id = result['tracking_id']
+                            st.success(f"Clocked in: {task_name}")
+                            st.rerun()
+                    else:
+                        st.error("Please enter a task name")
+            
+            with col2:
+                st.subheader("Clock Out")
+                active = user_manager.get_active_clock_in(user_id)
+                
+                if active:
+                    st.info(f"Currently tracking: **{active['task_name']}**")
+                    difficulty = st.select_slider("Difficulty Level", options=[1, 2, 3, 4, 5], value=3)
+                    notes = st.text_area("Notes", placeholder="How did it go?", height=100)
+                    
+                    if st.button("End Task", use_container_width=True, type="primary"):
+                        result = user_manager.clock_out(user_id, active['tracking_id'], difficulty, notes)
+                        if result['status'] == 'success':
+                            st.session_state.active_tracking_id = None
+                            st.success(f"Clocked out - Duration: {result['duration_minutes']} minutes")
+                            st.rerun()
+                        else:
+                            st.error(result.get('message', 'Error clocking out'))
+                else:
+                    st.caption("No active session. Start a task first!")
+            
+            # Time tracking history
+            st.divider()
+            st.subheader("Recent Sessions")
+            
+            history = user_manager.get_time_tracking_history(user_id, days=7)
+            
+            if history:
+                df_history = pd.DataFrame([
+                    {
+                        'Date': h['date'],
+                        'Task': h['task_name'],
+                        'Duration (min)': h['duration_minutes'],
+                        'Difficulty': h['difficulty_rating'],
+                        'Notes': h['notes'] or '-'
+                    }
+                    for h in history
+                ])
+                st.dataframe(df_history, use_container_width=True)
+            else:
+                st.caption("No tracked sessions yet")
+        else:
+            st.info("Select or create a profile first to track time")
+
+
+def show_personalized_insights_page():
+    """Personalized Insights & Recommendations page"""
+    st.subheader("Your Personalized Insights")
+    st.write("Analytics and recommendations based on your study patterns")
+    
+    if not st.session_state.current_user:
+        st.info("Select a profile first to view insights")
+        return
+    
+    user_manager = get_user_profile_manager()
+    user_id = st.session_state.current_user
+    user_data = user_manager.get_user(user_id)
+    
+    st.write(f"Profile: **{user_data['name']}**")
+    
+    # Get analytics
+    analytics = user_manager.calculate_analytics(user_id)
+    
+    if analytics.get('status') != 'success':
+        st.warning(analytics.get('message', 'Not enough data to calculate analytics'))
+        return
+    
+    # Display key metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Avg Session", f"{analytics['avg_session_duration']:.0f} min")
+    
+    with col2:
+        st.metric("Best Study Time", analytics['most_productive_hour'])
+    
+    with col3:
+        st.metric("Productivity", f"{analytics['productivity_score']:.0f}/100")
+    
+    with col4:
+        st.metric("Total Hours", f"{analytics['total_study_hours']:.1f}h")
+    
+    st.divider()
+    
+    # Get insights
+    insights = user_manager.get_personalized_insights(user_id)
+    
+    if insights['status'] == 'success':
+        st.subheader("Key Insights")
+        
+        for insight in insights['insights']:
+            with st.container(border=True):
+                col1, col2 = st.columns([3, 1]
+
+)
+                with col1:
+                    st.markdown(f"**{insight['title']}**")
+                    st.caption(insight['message'])
+                with col2:
+                    st.markdown(f"### {insight['metric']}")
+    
+    st.divider()
+    
+    # Study pattern visualization
+    st.subheader("Study Patterns")
+    
+    history = user_manager.get_time_tracking_history(user_id, days=30)
+    
+    if history:
+        # Group by hour
+        hour_data = {}
+        for h in history:
+            if h['clock_in_time']:
+                hour = datetime.fromisoformat(h['clock_in_time']).hour
+                hour_key = f"{hour:02d}:00"
+                hour_data[hour_key] = hour_data.get(hour_key, 0) + 1
+        
+        if hour_data:
+            df_hours = pd.DataFrame(list(hour_data.items()), columns=['Hour', 'Sessions'])
+            st.bar_chart(df_hours.set_index('Hour'), height=300)
+        
+        # Difficulty distribution
+        difficulties = [h['difficulty_rating'] for h in history if h['difficulty_rating']]
+        if difficulties:
+            st.write("**Difficulty Levels You Encounter**")
+            difficulty_dist = {i: difficulties.count(i) for i in range(1, 6)}
+            st.bar_chart(pd.DataFrame(list(difficulty_dist.items()), columns=['Difficulty', 'Count']).set_index('Difficulty'), height=200)
+    else:
+        st.caption("Not enough data to show patterns")
+
+
 def main():
     """Main Streamlit app with page navigation"""
     
@@ -1176,13 +1410,26 @@ def main():
         st.subheader("Navigation")
         page = st.radio(
             "Select Page",
-            ["Daily Planner", "Deadline Manager", "Calendar & History", "Feedback"],
+            ["Daily Planner", "Deadline Manager", "Calendar & History", "Feedback", "User Profiles", "Insights"],
             label_visibility="collapsed"
         )
         
         st.divider()
         
-        # Theme selector
+        # Current user display
+        st.subheader("Current Profile")
+        if st.session_state.current_user:
+            user_manager = get_user_profile_manager()
+            user_data = user_manager.get_user(st.session_state.current_user)
+            st.success(f"User: {user_data['name']}", icon="✓")
+            
+            active = user_manager.get_active_clock_in(st.session_state.current_user)
+            if active:
+                st.warning(f"Tracking: {active['task_name']}", icon="⏱️")
+        else:
+            st.caption("No profile selected")
+        
+        st.divider()
         st.subheader("Appearance")
         theme_cols = st.columns(2)
         
@@ -1225,8 +1472,12 @@ def main():
         show_deadline_manager()
     elif page == "Calendar & History":
         show_calendar_overview()
-    else:
+    elif page == "Feedback":
         show_feedback_page()
+    elif page == "User Profiles":
+        show_user_profiles_page()
+    else:
+        show_personalized_insights_page()
     
     # Footer
     st.markdown("---")
