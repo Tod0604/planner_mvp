@@ -45,10 +45,6 @@ Thumbs.db
 *.sqlite3
 study_planner.db
 
-# ML Models
-models/*.pkl
-*.pkl
-
 # Data
 data/synthetic_data.csv
 data/*.csv
