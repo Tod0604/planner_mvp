@@ -1,9 +1,6 @@
-# Study Planner MVP Dependencies - Updated Dec 7 2025 23:24
-streamlit==1.35.0
-fastapi==0.109.0
-pydantic==2.7.0
-pandas==2.2.0
-numpy==1.26.4
-uvicorn==0.27.0
-python-dateutil==2.8.2
-requests==2.31.0
+streamlit>=1.30
+fastapi
+pandas
+numpy
+requests
+python-dateutil
