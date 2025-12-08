@@ -49,6 +49,9 @@ study_planner.db
 data/synthetic_data.csv
 data/*.csv
 
+# ML Models (except the trained ones)
+# models/*.pkl is intentionally NOT ignored - we need to commit trained models for deployment
+
 # Logs
 *.log
 logs/

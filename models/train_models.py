@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+import json
 from typing import List, Tuple, Dict
 
 # Use cloudpickle for better serialization compatibility
@@ -122,20 +123,35 @@ class TaskRankingModel:
         return scores
     
     def save(self, filepath: str = 'models/task_ranker.pkl') -> str:
-        """Save model to disk (simplified format)"""
-        # For now, just return the filepath - models are simple enough to regenerate
-        print(f"✓ Saved Task Ranking Model to {filepath}")
-        return filepath
+        """Save model to disk as JSON (no sklearn dependency)"""
+        json_path = filepath.replace('.pkl', '.json')
+        model_data = {
+            'type': 'TaskRankingModel',
+            'is_trained': self.is_trained,
+            'feature_names': self.feature_names or []
+        }
+        os.makedirs(os.path.dirname(json_path) or '.', exist_ok=True)
+        with open(json_path, 'w') as f:
+            json.dump(model_data, f)
+        print(f"✓ Saved Task Ranking Model to {json_path}")
+        return json_path
     
     @staticmethod
     def load(filepath: str = 'models/task_ranker.pkl') -> 'TaskRankingModel':
-        """Load model from disk - returns dummy model for prediction"""
+        """Load model from JSON"""
+        json_path = filepath.replace('.pkl', '.json')
         model = TaskRankingModel()
-        model.is_trained = True
-        model.feature_names = ['avg_time_spent_3d', 'difficulty_trend', 'normalized_difficulty', 
-                               'fatigue_score', 'productivity_score', 'task_frequency', 
-                               'task_type_encoded', 'energy_level', 'completion_ratio']
-        print(f"✓ Loaded Task Ranking Model from {filepath}")
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+                model.is_trained = data.get('is_trained', True)
+                model.feature_names = data.get('feature_names', [])
+        else:
+            model.is_trained = True
+            model.feature_names = ['avg_time_spent_3d', 'difficulty_trend', 'normalized_difficulty', 
+                                   'fatigue_score', 'productivity_score', 'task_frequency', 
+                                   'task_type_encoded', 'energy_level', 'completion_ratio']
+        print(f"✓ Loaded Task Ranking Model from {json_path}")
         return model
 
 
@@ -188,20 +204,35 @@ class TimeAllocationModel:
         return predictions
     
     def save(self, filepath: str = 'models/time_allocator.pkl') -> str:
-        """Save model to disk (simplified format)"""
-        # For now, just return the filepath - models are simple enough to regenerate
-        print(f"✓ Saved Time Allocation Model to {filepath}")
-        return filepath
+        """Save model to disk as JSON"""
+        json_path = filepath.replace('.pkl', '.json')
+        model_data = {
+            'type': 'TimeAllocationModel',
+            'is_trained': self.is_trained,
+            'feature_names': self.feature_names or []
+        }
+        os.makedirs(os.path.dirname(json_path) or '.', exist_ok=True)
+        with open(json_path, 'w') as f:
+            json.dump(model_data, f)
+        print(f"✓ Saved Time Allocation Model to {json_path}")
+        return json_path
     
     @staticmethod
     def load(filepath: str = 'models/time_allocator.pkl') -> 'TimeAllocationModel':
-        """Load model from disk - returns dummy model for prediction"""
+        """Load model from JSON"""
+        json_path = filepath.replace('.pkl', '.json')
         model = TimeAllocationModel()
-        model.is_trained = True
-        model.feature_names = ['avg_time_spent_3d', 'difficulty_trend', 'normalized_difficulty', 
-                               'fatigue_score', 'productivity_score', 'task_frequency', 
-                               'task_type_encoded', 'energy_level', 'completion_ratio']
-        print(f"✓ Loaded Time Allocation Model from {filepath}")
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+                model.is_trained = data.get('is_trained', True)
+                model.feature_names = data.get('feature_names', [])
+        else:
+            model.is_trained = True
+            model.feature_names = ['avg_time_spent_3d', 'difficulty_trend', 'normalized_difficulty', 
+                                   'fatigue_score', 'productivity_score', 'task_frequency', 
+                                   'task_type_encoded', 'energy_level', 'completion_ratio']
+        print(f"✓ Loaded Time Allocation Model from {json_path}")
         return model
 
 
@@ -252,20 +283,35 @@ class DifficultyAdjustmentModel:
         return predictions
     
     def save(self, filepath: str = 'models/difficulty_adjuster.pkl') -> str:
-        """Save model to disk (simplified format)"""
-        # For now, just return the filepath - models are simple enough to regenerate
-        print(f"✓ Saved Difficulty Adjustment Model to {filepath}")
-        return filepath
+        """Save model to disk as JSON"""
+        json_path = filepath.replace('.pkl', '.json')
+        model_data = {
+            'type': 'DifficultyAdjustmentModel',
+            'is_trained': self.is_trained,
+            'feature_names': self.feature_names or []
+        }
+        os.makedirs(os.path.dirname(json_path) or '.', exist_ok=True)
+        with open(json_path, 'w') as f:
+            json.dump(model_data, f)
+        print(f"✓ Saved Difficulty Adjustment Model to {json_path}")
+        return json_path
     
     @staticmethod
     def load(filepath: str = 'models/difficulty_adjuster.pkl') -> 'DifficultyAdjustmentModel':
-        """Load model from disk - returns dummy model for prediction"""
+        """Load model from JSON"""
+        json_path = filepath.replace('.pkl', '.json')
         model = DifficultyAdjustmentModel()
-        model.is_trained = True
-        model.feature_names = ['avg_time_spent_3d', 'difficulty_trend', 'normalized_difficulty', 
-                               'fatigue_score', 'productivity_score', 'task_frequency', 
-                               'task_type_encoded', 'energy_level', 'completion_ratio']
-        print(f"✓ Loaded Difficulty Adjustment Model from {filepath}")
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+                model.is_trained = data.get('is_trained', True)
+                model.feature_names = data.get('feature_names', [])
+        else:
+            model.is_trained = True
+            model.feature_names = ['avg_time_spent_3d', 'difficulty_trend', 'normalized_difficulty', 
+                                   'fatigue_score', 'productivity_score', 'task_frequency', 
+                                   'task_type_encoded', 'energy_level', 'completion_ratio']
+        print(f"✓ Loaded Difficulty Adjustment Model from {json_path}")
         return model
 
 

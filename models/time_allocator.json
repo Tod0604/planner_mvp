@@ -1,0 +1,1 @@
+{"type": "TimeAllocationModel", "is_trained": true, "feature_names": ["avg_time_spent_3d", "difficulty_trend", "normalized_difficulty", "fatigue_score", "productivity_score", "task_frequency", "task_type_encoded", "energy_level", "completion_ratio"]}
