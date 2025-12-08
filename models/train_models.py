@@ -18,45 +18,55 @@ except ImportError:
     import pickle
 
 # Try importing sklearn - optional for loading pre-trained models
+# For Streamlit Cloud compatibility, we prefer using dummy classes
+SKLEARN_AVAILABLE = False
 try:
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.linear_model import LinearRegression, LogisticRegression
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.ensemble import RandomForestClassifier as _RF
+    from sklearn.linear_model import LinearRegression as _LR, LogisticRegression as _LogReg
+    from sklearn.preprocessing import StandardScaler as _SS
     from sklearn.model_selection import train_test_split
+    SKLEARN_AVAILABLE = True
+    # Only use real sklearn if explicitly needed for training
+    RandomForestClassifier = _RF
+    LinearRegression = _LR
+    LogisticRegression = _LogReg
+    StandardScaler = _SS
 except ImportError:
-    # Dummy implementations for when sklearn is not available
-    class StandardScaler:
-        def fit_transform(self, X): 
-            return np.asarray(X)
-        def transform(self, X): 
-            return np.asarray(X)
-    
-    class LinearRegression:
-        def __init__(self):
-            self.coef_ = None
-            self.intercept_ = None
-        def fit(self, X, y): 
-            self.coef_ = np.zeros(X.shape[1] if len(X.shape) > 1 else 1)
-            self.intercept_ = 0
-            return self
-        def predict(self, X): 
-            return np.zeros(len(X) if hasattr(X, '__len__') else 1)
-    
-    class LogisticRegression:
-        def __init__(self, max_iter=100, random_state=None, multi_class='auto'):
-            self.max_iter = max_iter
-            self.random_state = random_state
-            self.multi_class = multi_class
-        def fit(self, X, y): 
-            return self
-        def predict(self, X): 
-            return np.zeros(len(X), dtype=int)
-    
-    class RandomForestClassifier:
-        def fit(self, X, y): 
-            return self
-        def predict(self, X): 
-            return np.zeros(len(X))
+    SKLEARN_AVAILABLE = False
+
+# Always define dummy classes for runtime compatibility
+class StandardScaler:
+    def fit_transform(self, X): 
+        return np.asarray(X)
+    def transform(self, X): 
+        return np.asarray(X)
+
+class LinearRegression:
+    def __init__(self):
+        self.coef_ = None
+        self.intercept_ = None
+    def fit(self, X, y): 
+        self.coef_ = np.zeros(X.shape[1] if len(X.shape) > 1 else 1)
+        self.intercept_ = 0
+        return self
+    def predict(self, X): 
+        return np.zeros(len(X) if hasattr(X, '__len__') else 1)
+
+class LogisticRegression:
+    def __init__(self, max_iter=100, random_state=None, multi_class='auto'):
+        self.max_iter = max_iter
+        self.random_state = random_state
+        self.multi_class = multi_class
+    def fit(self, X, y): 
+        return self
+    def predict(self, X): 
+        return np.zeros(len(X), dtype=int)
+
+class RandomForestClassifier:
+    def fit(self, X, y): 
+        return self
+    def predict(self, X): 
+        return np.zeros(len(X))
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
