@@ -7,27 +7,52 @@ ML Models for Study Planner
 
 import numpy as np
 import pandas as pd
-import pickle
 import os
 import sys
 from typing import List, Tuple, Dict
 
-# Try importing sklearn - not needed for loading pre-trained models
+# Use cloudpickle for better serialization compatibility
+try:
+    import cloudpickle as pickle
+except ImportError:
+    import pickle
+
+# Try importing sklearn - optional for loading pre-trained models
 try:
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.linear_model import LinearRegression, LogisticRegression
     from sklearn.preprocessing import StandardScaler
     from sklearn.model_selection import train_test_split
-    SKLEARN_AVAILABLE = True
 except ImportError:
-    SKLEARN_AVAILABLE = False
-    # Define dummy classes for pickle compatibility when loading models
+    # Dummy implementations for when sklearn is not available
     class StandardScaler:
-        def fit_transform(self, X): return X
-        def transform(self, X): return X
+        def fit_transform(self, X): 
+            return np.asarray(X)
+        def transform(self, X): 
+            return np.asarray(X)
+    
     class LinearRegression:
-        def fit(self, X, y): pass
-        def predict(self, X): return np.zeros(len(X))
+        def __init__(self):
+            self.coef_ = None
+            self.intercept_ = None
+        def fit(self, X, y): 
+            self.coef_ = np.zeros(X.shape[1] if len(X.shape) > 1 else 1)
+            self.intercept_ = 0
+            return self
+        def predict(self, X): 
+            return np.zeros(len(X) if hasattr(X, '__len__') else 1)
+    
+    class LogisticRegression:
+        def fit(self, X, y): 
+            return self
+        def predict(self, X): 
+            return np.zeros(len(X))
+    
+    class RandomForestClassifier:
+        def fit(self, X, y): 
+            return self
+        def predict(self, X): 
+            return np.zeros(len(X))
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
