@@ -43,10 +43,14 @@ except ImportError:
             return np.zeros(len(X) if hasattr(X, '__len__') else 1)
     
     class LogisticRegression:
+        def __init__(self, max_iter=100, random_state=None, multi_class='auto'):
+            self.max_iter = max_iter
+            self.random_state = random_state
+            self.multi_class = multi_class
         def fit(self, X, y): 
             return self
         def predict(self, X): 
-            return np.zeros(len(X))
+            return np.zeros(len(X), dtype=int)
     
     class RandomForestClassifier:
         def fit(self, X, y): 
