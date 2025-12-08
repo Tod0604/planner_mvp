@@ -650,19 +650,11 @@ st.markdown(get_theme_css(st.session_state.theme), unsafe_allow_html=True)
 
 
 def call_api(user_input: Dict[str, Any]) -> Dict[str, Any]:
-    """Call the FastAPI endpoint"""
+    """Generate study plan using local StudyPlanner"""
     try:
-        response = requests.post(
-            "http://localhost:8000/plan",
-            json=user_input,
-            timeout=10
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.ConnectionError:
-        return {
-            "error": "Cannot connect to API. Make sure FastAPI server is running on port 8000"
-        }
+        from main import StudyPlanner
+        planner = StudyPlanner()
+        return planner.generate_plan(user_input)
     except Exception as e:
         return {"error": str(e)}
 
