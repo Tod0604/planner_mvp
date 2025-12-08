@@ -6,15 +6,32 @@ Converts raw logs into model-ready features
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple
-from sklearn.preprocessing import LabelEncoder
+
+
+class SimpleLabelEncoder:
+    """Simple label encoder without sklearn dependency"""
+    def __init__(self):
+        self.classes_ = []
+        self.mapping_ = {}
+    
+    def fit(self, y):
+        self.classes_ = list(set(y))
+        self.mapping_ = {v: i for i, v in enumerate(self.classes_)}
+        return self
+    
+    def transform(self, y):
+        return [self.mapping_.get(v, 0) for v in y]
+    
+    def fit_transform(self, y):
+        return self.fit(y).transform(y)
 
 
 class FeatureBuilder:
     """Build features from raw study logs"""
     
     def __init__(self):
-        self.task_type_encoder = LabelEncoder()
-        self.task_name_encoder = LabelEncoder()
+        self.task_type_encoder = SimpleLabelEncoder()
+        self.task_name_encoder = SimpleLabelEncoder()
         self.is_fitted = False
         
     def fit(self, df: pd.DataFrame) -> 'FeatureBuilder':
